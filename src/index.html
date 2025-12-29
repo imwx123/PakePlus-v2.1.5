@@ -1,32 +1,1118 @@
 <!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <link rel="stylesheet" href="styles.css" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>PakePlus App</title>
-        <script type="module" src="/main.js" defer></script>
-    </head>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高级倒计时工具 | 精准计时，自定义体验</title>
+    <!-- TailwindCSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- 自定义配置 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        business: '#2C3E50',
+                        exam: '#E74C3C',
+                        festival: '#F39C12',
+                        birthday: '#9B59B6',
+                        festive: '#E67E22',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        /* 基础样式修复 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        /* 工具类样式 */
+        .time-card {
+            border-radius: 1rem;
+            border: 4px solid;
+            background-color: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(12px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+            padding: 2rem;
+            margin: 0 auto;
+        }
+        
+        .btn-primary {
+            background-color: #165DFF;
+            color: white;
+            font-weight: 500;
+            border-radius: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(22, 93, 255, 0.2);
+            border: none;
+            cursor: pointer;
+        }
+        
+        .btn-primary:hover {
+            background-color: #0047CC;
+            box-shadow: 0 6px 16px rgba(22, 93, 255, 0.3);
+        }
+        
+        .btn-secondary {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: white;
+            font-weight: 500;
+            border-radius: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border: none;
+            cursor: pointer;
+        }
+        
+        .btn-secondary:hover {
+            background-color: rgba(255, 255, 255, 0.3);
+        }
+        
+        .countdown-digit {
+            font-size: clamp(2.5rem, 8vw, 6rem);
+            font-weight: 700;
+            color: white;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+        
+        .countdown-label {
+            font-size: clamp(1rem, 2vw, 1.5rem);
+            color: rgba(255, 255, 255, 0.8);
+            margin-top: 0.5rem;
+        }
+        
+        .modal-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+        }
+        
+        .modal-card {
+            background-color: white;
+            border-radius: 1rem;
+            padding: 2rem;
+            width: 100%;
+            max-width: 42rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+        
+        .theme-card {
+            border-radius: 0.75rem;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+        
+        .theme-card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+            border-color: #165DFF;
+        }
+        
+        .final-countdown {
+            font-size: clamp(5rem, 20vw, 10rem);
+            font-weight: 700;
+            color: white;
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.05); }
+        }
+        
+        /* 响应式调整 */
+        @media (max-width: 768px) {
+            .time-card {
+                padding: 1.5rem;
+                width: 95%;
+            }
+            
+            .countdown-digit {
+                font-size: clamp(2rem, 15vw, 4rem);
+            }
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center bg-gradient-to-br from-[#165DFF]/80 to-[#165DFF]/20 transition-all duration-500" id="app-body">
+    <!-- 顶部操作栏 -->
+    <div class="fixed top-4 right-4 flex gap-3 z-40" id="action-bar">
+        <!-- 主题设置 -->
+        <button id="theme-btn" class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white hover:bg-white/30 transition-all">
+            <i class="fa fa-paint-brush"></i>
+        </button>
+        <!-- 全屏按钮 -->
+        <button id="fullscreen-btn" class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white hover:bg-white/30 transition-all">
+            <i class="fa fa-expand"></i>
+        </button>
+    </div>
 
-    <body>
-        <main class="container">
-            <h1>Welcome to PakePlus</h1>
-            <form class="row" id="greet-form">
-                <input id="inputValue" placeholder="Enter a something..." />
+    <!-- 核心倒计时区域 -->
+    <div class="time-card text-center w-full max-w-4xl border-[#165DFF]/50" id="countdown-container">
+        <!-- Logo显示区 -->
+        <div id="logo-container" class="mb-6 hidden">
+            <img id="countdown-logo" src="" alt="倒计时Logo" class="mx-auto max-h-20 rounded-lg">
+        </div>
+        
+        <!-- 倒计时标题 -->
+        <h2 id="countdown-title" class="text-2xl md:text-3xl lg:text-4xl text-white mb-8 font-semibold"></h2>
+        
+        <!-- 时间显示区 -->
+        <div id="time-display" class="flex flex-wrap justify-center gap-6 md:gap-8 lg:gap-12 items-center mb-8">
+            <!-- 默认显示当前时间 -->
+            <div id="current-time" class="text-5xl md:text-7xl lg:text-8xl font-bold text-white">
+                <span id="current-time-text"></span>
+            </div>
+            
+            <!-- 倒计时显示（默认隐藏） -->
+            <div id="countdown-display" class="hidden w-full">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+                    <!-- 天 -->
+                    <div class="flex flex-col items-center">
+                        <div id="days" class="countdown-digit">00</div>
+                        <div class="countdown-label">天</div>
+                    </div>
+                    <!-- 时 -->
+                    <div class="flex flex-col items-center">
+                        <div id="hours" class="countdown-digit">00</div>
+                        <div class="countdown-label">时</div>
+                    </div>
+                    <!-- 分 -->
+                    <div class="flex flex-col items-center">
+                        <div id="minutes" class="countdown-digit">00</div>
+                        <div class="countdown-label">分</div>
+                    </div>
+                    <!-- 秒 -->
+                    <div class="flex flex-col items-center">
+                        <div id="seconds" class="countdown-digit">00</div>
+                        <div class="countdown-label">秒</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 最后10秒倒计时（默认隐藏） -->
+            <div id="final-countdown" class="hidden w-full">
+                <div id="final-seconds" class="final-countdown">10</div>
+            </div>
+        </div>
+        
+        <!-- 操作按钮区 -->
+        <div id="btn-container" class="flex flex-wrap justify-center gap-4 mt-6">
+            <button id="add-countdown-btn" class="btn-primary">
+                <i class="fa fa-plus mr-2"></i>添加倒计时
+            </button>
+            <!-- 重置/修改按钮（默认隐藏） -->
+            <button id="reset-btn" class="btn-secondary hidden">
+                <i class="fa fa-refresh mr-2"></i>重置
+            </button>
+            <button id="edit-btn" class="btn-primary hidden">
+                <i class="fa fa-pencil mr-2"></i>修改
+            </button>
+        </div>
+    </div>
+
+    <!-- 烟花特效容器 -->
+    <canvas id="fireworks-canvas" class="fixed inset-0 pointer-events-none z-30 hidden"></canvas>
+
+    <!-- 添加/编辑倒计时弹窗 -->
+    <div id="countdown-modal" class="modal-bg hidden">
+        <div class="modal-card">
+            <h3 class="text-2xl font-bold text-gray-800 mb-6">设置倒计时</h3>
+            <form id="countdown-form" class="space-y-4">
+                <!-- 标题 -->
+                <div>
+                    <label class="block text-gray-700 font-medium mb-2">倒计时标题</label>
+                    <input type="text" id="title-input" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#165DFF]/50" placeholder="例如：高考倒计时、生日倒计时" required>
+                </div>
+                
+                <!-- 目标时间 -->
+                <div>
+                    <label class="block text-gray-700 font-medium mb-2">目标时间</label>
+                    <input type="datetime-local" id="target-time-input" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#165DFF]/50" required>
+                </div>
+                
+                <!-- Logo上传 -->
+                <div>
+                    <label class="block text-gray-700 font-medium mb-2">上传Logo（可选）</label>
+                    <input type="file" id="logo-upload" accept="image/*" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none">
+                </div>
+                
+                <!-- 铃声选择 -->
+                <div>
+                    <label class="block text-gray-700 font-medium mb-2">倒计时结束铃声</label>
+                    <select id="ringtone-select" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#165DFF]/50">
+                        <option value="default">默认提示音</option>
+                        <option value="cheer">欢呼音效</option>
+                        <option value="bell">铃铛音效</option>
+                        <option value="celebration">庆祝音效</option>
+                    </select>
+                </div>
+                
+                <!-- 结束特效 -->
+                <div>
+                    <label class="block text-gray-700 font-medium mb-2">倒计时结束特效</label>
+                    <select id="effect-select" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#165DFF]/50">
+                        <option value="fireworks">烟花特效</option>
+                        <option value="confetti">彩屑特效</option>
+                        <option value="none">无特效</option>
+                    </select>
+                </div>
+                
+                <div class="flex justify-end gap-3 mt-6">
+                    <button type="button" id="cancel-modal" class="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-all">取消</button>
+                    <button type="submit" class="btn-primary">保存</button>
+                </div>
             </form>
-            <div class="resultBox">
-                <span>result: </span>
-                <span id="result"></span>
+        </div>
+    </div>
+
+    <!-- 主题选择弹窗 -->
+    <div id="theme-modal" class="modal-bg hidden">
+        <div class="modal-card max-w-4xl">
+            <h3 class="text-2xl font-bold text-gray-800 mb-6">选择主题风格</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- 商务风格 -->
+                <div class="theme-card" data-theme="business">
+                    <div class="h-32 bg-[#2C3E50]/80 rounded-t-lg flex items-center justify-center text-white font-medium">
+                        商务倒计时
+                    </div>
+                    <div class="p-3 bg-white rounded-b-lg text-sm text-gray-600">
+                        简约专业，适合商务会议、项目截止
+                    </div>
+                </div>
+                
+                <!-- 高考风格 -->
+                <div class="theme-card" data-theme="exam">
+                    <div class="h-32 bg-[#E74C3C]/80 rounded-t-lg flex items-center justify-center text-white font-medium">
+                        高考倒计时
+                    </div>
+                    <div class="p-3 bg-white rounded-b-lg text-sm text-gray-600">
+                        励志热血，适合考试、备考倒计时
+                    </div>
+                </div>
+                
+                <!-- 节日风格 -->
+                <div class="theme-card" data-theme="festival">
+                    <div class="h-32 bg-[#F39C12]/80 rounded-t-lg flex items-center justify-center text-white font-medium">
+                        节日倒计时
+                    </div>
+                    <div class="p-3 bg-white rounded-b-lg text-sm text-gray-600">
+                        温馨喜庆，适合节日、假期倒计时
+                    </div>
+                </div>
+                
+                <!-- 生日风格 -->
+                <div class="theme-card" data-theme="birthday">
+                    <div class="h-32 bg-[#9B59B6]/80 rounded-t-lg flex items-center justify-center text-white font-medium">
+                        生日倒计时
+                    </div>
+                    <div class="p-3 bg-white rounded-b-lg text-sm text-gray-600">
+                        浪漫温馨，适合生日、纪念日倒计时
+                    </div>
+                </div>
+                
+                <!-- 喜庆风格 -->
+                <div class="theme-card" data-theme="festive">
+                    <div class="h-32 bg-[#E67E22]/80 rounded-t-lg flex items-center justify-center text-white font-medium">
+                        喜庆倒计时
+                    </div>
+                    <div class="p-3 bg-white rounded-b-lg text-sm text-gray-600">
+                        热烈欢快，适合婚礼、庆典倒计时
+                    </div>
+                </div>
+                
+                <!-- 默认风格 -->
+                <div class="theme-card" data-theme="default">
+                    <div class="h-32 bg-[#165DFF]/80 rounded-t-lg flex items-center justify-center text-white font-medium">
+                        默认风格
+                    </div>
+                    <div class="p-3 bg-white rounded-b-lg text-sm text-gray-600">
+                        简约高级，适合通用场景倒计时
+                    </div>
+                </div>
             </div>
-            <div class="invokeBox">
-                <button id="openUrl">open_url_browser</button>
-                <button id="openUrlNew">open_url_new</button>
-                <button id="runCommand">run_command</button>
-                <button id="downloadFile">download_file</button>
-                <button id="getExeDir">get_exe_dir</button>
-                <button id="getEnvVar">get_env_var</button>
-                <button id="findPort">find_port</button>
-            </div>
-        </main>
-    </body>
+            <button type="button" id="close-theme-modal" class="mt-6 btn-secondary text-gray-800 bg-gray-100 hover:bg-gray-200">
+                关闭
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // 全局状态管理
+        const state = {
+            countdown: null,
+            targetTime: null,
+            title: '',
+            logo: '',
+            ringtone: 'default',
+            effect: 'fireworks',
+            isFullscreen: false,
+            isFinalCountdown: false,
+            theme: 'default',
+            timer: null
+        };
+
+        // DOM元素 - 修复获取元素的兼容性
+        const elements = {
+            // 核心容器
+            appBody: document.getElementById('app-body'),
+            countdownContainer: document.getElementById('countdown-container'),
+            currentTime: document.getElementById('current-time'),
+            countdownDisplay: document.getElementById('countdown-display'),
+            finalCountdown: document.getElementById('final-countdown'),
+            finalSeconds: document.getElementById('final-seconds'),
+            
+            // 时间数字
+            days: document.getElementById('days'),
+            hours: document.getElementById('hours'),
+            minutes: document.getElementById('minutes'),
+            seconds: document.getElementById('seconds'),
+            currentTimeText: document.getElementById('current-time-text'),
+            
+            // 标题和Logo
+            countdownTitle: document.getElementById('countdown-title'),
+            logoContainer: document.getElementById('logo-container'),
+            countdownLogo: document.getElementById('countdown-logo'),
+            
+            // 按钮
+            addCountdownBtn: document.getElementById('add-countdown-btn'),
+            resetBtn: document.getElementById('reset-btn'),
+            editBtn: document.getElementById('edit-btn'),
+            themeBtn: document.getElementById('theme-btn'),
+            fullscreenBtn: document.getElementById('fullscreen-btn'),
+            actionBar: document.getElementById('action-bar'),
+            
+            // 弹窗
+            countdownModal: document.getElementById('countdown-modal'),
+            themeModal: document.getElementById('theme-modal'),
+            countdownForm: document.getElementById('countdown-form'),
+            cancelModal: document.getElementById('cancel-modal'),
+            closeThemeModal: document.getElementById('close-theme-modal'),
+            
+            // 表单输入
+            titleInput: document.getElementById('title-input'),
+            targetTimeInput: document.getElementById('target-time-input'),
+            logoUpload: document.getElementById('logo-upload'),
+            ringtoneSelect: document.getElementById('ringtone-select'),
+            effectSelect: document.getElementById('effect-select'),
+            
+            // 特效
+            fireworksCanvas: document.getElementById('fireworks-canvas')
+        };
+
+        // 修复：初始化当前时间显示
+        function updateCurrentTime() {
+            try {
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString('zh-CN', { 
+                    hour: '2-digit', 
+                    minute: '2-digit', 
+                    second: '2-digit',
+                    hour12: false 
+                });
+                if (elements.currentTimeText) {
+                    elements.currentTimeText.textContent = timeStr;
+                }
+            } catch (e) {
+                console.error('更新当前时间失败:', e);
+            }
+        }
+
+        // 修复：初始化目标时间输入默认值
+        function initTargetTimeInput() {
+            try {
+                const now = new Date();
+                now.setHours(now.getHours() + 1);
+                // 修复：兼容不同浏览器的datetime-local格式
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const day = String(now.getDate()).padStart(2, '0');
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const isoStr = `${year}-${month}-${day}T${hours}:${minutes}`;
+                
+                if (elements.targetTimeInput) {
+                    elements.targetTimeInput.value = isoStr;
+                }
+            } catch (e) {
+                console.error('初始化目标时间失败:', e);
+            }
+        }
+
+        // 修复：计算倒计时
+        function calculateCountdown(targetTime) {
+            try {
+                const now = new Date().getTime();
+                const diff = targetTime - now;
+
+                if (diff <= 0) return { 
+                    days: '00', 
+                    hours: '00', 
+                    minutes: '00', 
+                    seconds: '00', 
+                    isEnd: true,
+                    totalSeconds: 0 
+                };
+
+                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+                return {
+                    days: days.toString().padStart(2, '0'),
+                    hours: hours.toString().padStart(2, '0'),
+                    minutes: minutes.toString().padStart(2, '0'),
+                    seconds: seconds.toString().padStart(2, '0'),
+                    isEnd: false,
+                    totalSeconds: Math.floor(diff / 1000)
+                };
+            } catch (e) {
+                console.error('计算倒计时失败:', e);
+                return { 
+                    days: '00', 
+                    hours: '00', 
+                    minutes: '00', 
+                    seconds: '00', 
+                    isEnd: true,
+                    totalSeconds: 0 
+                };
+            }
+        }
+
+        // 修复：更新倒计时显示
+        function updateCountdownDisplay() {
+            if (!state.targetTime) return;
+
+            try {
+                const countdown = calculateCountdown(state.targetTime);
+                
+                // 最后10秒切换到大字倒计时
+                if (countdown.totalSeconds <= 10 && countdown.totalSeconds > 0) {
+                    if (!state.isFinalCountdown) {
+                        state.isFinalCountdown = true;
+                        if (elements.countdownDisplay) elements.countdownDisplay.style.display = 'none';
+                        if (elements.finalCountdown) elements.finalCountdown.style.display = 'block';
+                    }
+                    if (elements.finalSeconds) elements.finalSeconds.textContent = countdown.totalSeconds;
+                } 
+                // 倒计时结束
+                else if (countdown.isEnd) {
+                    if (state.timer) clearInterval(state.timer);
+                    state.timer = null;
+                    
+                    if (elements.finalCountdown) elements.finalCountdown.style.display = 'none';
+                    if (elements.countdownDisplay) elements.countdownDisplay.style.display = 'block';
+                    
+                    if (elements.days) elements.days.textContent = '00';
+                    if (elements.hours) elements.hours.textContent = '00';
+                    if (elements.minutes) elements.minutes.textContent = '00';
+                    if (elements.seconds) elements.seconds.textContent = '00';
+                    
+                    // 播放铃声
+                    playRingtone();
+                    
+                    // 显示特效
+                    showEffect();
+                    
+                    // 重置状态
+                    state.isFinalCountdown = false;
+                } 
+                // 正常倒计时
+                else {
+                    if (state.isFinalCountdown) {
+                        state.isFinalCountdown = false;
+                        if (elements.finalCountdown) elements.finalCountdown.style.display = 'none';
+                        if (elements.countdownDisplay) elements.countdownDisplay.style.display = 'block';
+                    }
+                    if (elements.days) elements.days.textContent = countdown.days;
+                    if (elements.hours) elements.hours.textContent = countdown.hours;
+                    if (elements.minutes) elements.minutes.textContent = countdown.minutes;
+                    if (elements.seconds) elements.seconds.textContent = countdown.seconds;
+                }
+            } catch (e) {
+                console.error('更新倒计时显示失败:', e);
+            }
+        }
+
+        // 修复：播放结束铃声
+        function playRingtone() {
+            try {
+                const ringtones = {
+                    default: 'https://assets.mixkit.co/sfx/preview/mixkit-software-interface-start-2574.mp3',
+                    cheer: 'https://assets.mixkit.co/sfx/preview/mixkit-crowd-cheer-ambience-178.mp3',
+                    bell: 'https://assets.mixkit.co/sfx/preview/mixkit-bell-notification-933.mp3',
+                    celebration: 'https://assets.mixkit.co/sfx/preview/mixkit-joyful-celebration-1310.mp3'
+                };
+
+                // 修复：兼容浏览器音频播放策略
+                const audio = new Audio(ringtones[state.ringtone] || ringtones.default);
+                audio.volume = 0.7;
+                // 修复：添加播放错误处理
+                audio.play().catch(err => {
+                    console.log('自动播放音效失败，需要用户交互:', err);
+                    // 降级方案：显示提示
+                    alert('倒计时结束！');
+                });
+            } catch (e) {
+                console.error('播放铃声失败:', e);
+            }
+        }
+
+        // 修复：显示结束特效
+        function showEffect() {
+            try {
+                if (state.effect === 'none') return;
+                
+                if (state.effect === 'fireworks') {
+                    initFireworks();
+                    setTimeout(() => {
+                        if (elements.fireworksCanvas) elements.fireworksCanvas.style.display = 'none';
+                    }, 10000);
+                }
+                
+                if (state.effect === 'confetti') {
+                    createConfetti();
+                }
+            } catch (e) {
+                console.error('显示特效失败:', e);
+            }
+        }
+
+        // 修复：烟花特效实现
+        function initFireworks() {
+            try {
+                const canvas = elements.fireworksCanvas;
+                if (!canvas) return;
+                
+                const ctx = canvas.getContext('2d');
+                if (!ctx) return;
+                
+                // 修复：Canvas尺寸设置
+                function resizeCanvas() {
+                    canvas.width = window.innerWidth;
+                    canvas.height = window.innerHeight;
+                }
+                
+                resizeCanvas();
+                window.addEventListener('resize', resizeCanvas);
+                
+                canvas.style.display = 'block';
+                
+                // 烟花粒子类
+                class Particle {
+                    constructor(x, y, color) {
+                        this.x = x;
+                        this.y = y;
+                        this.speed = Math.random() * 5 + 2;
+                        this.angle = Math.random() * Math.PI * 2;
+                        this.gravity = 0.05;
+                        this.vx = Math.cos(this.angle) * this.speed;
+                        this.vy = Math.sin(this.angle) * this.speed;
+                        this.alpha = 1;
+                        this.decay = Math.random() * 0.01 + 0.005;
+                        this.color = color;
+                    }
+                    
+                    update() {
+                        this.vy += this.gravity;
+                        this.x += this.vx;
+                        this.y += this.vy;
+                        this.alpha -= this.decay;
+                    }
+                    
+                    draw() {
+                        ctx.save();
+                        ctx.globalAlpha = this.alpha;
+                        ctx.beginPath();
+                        ctx.arc(this.x, this.y, 2, 0, Math.PI * 2);
+                        ctx.fillStyle = this.color;
+                        ctx.fill();
+                        ctx.restore();
+                    }
+                }
+                
+                let particles = [];
+                const colors = ['#ff0043', '#26ff00', '#00a8ff', '#ffd600', '#ff00f7', '#00fff9'];
+                
+                // 创建烟花
+                function createFirework() {
+                    const x = Math.random() * canvas.width;
+                    const y = Math.random() * canvas.height;
+                    const color = colors[Math.floor(Math.random() * colors.length)];
+                    
+                    // 创建粒子
+                    for (let i = 0; i < 100; i++) {
+                        particles.push(new Particle(x, y, color));
+                    }
+                }
+                
+                // 动画循环
+                function animate() {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    
+                    // 创建新烟花
+                    if (Math.random() < 0.2) createFirework();
+                    
+                    // 更新和绘制粒子
+                    particles = particles.filter(particle => {
+                        particle.update();
+                        particle.draw();
+                        return particle.alpha > 0;
+                    });
+                    
+                    if (particles.length > 0) {
+                        requestAnimationFrame(animate);
+                    } else {
+                        canvas.style.display = 'none';
+                    }
+                }
+                
+                animate();
+            } catch (e) {
+                console.error('初始化烟花特效失败:', e);
+            }
+        }
+
+        // 修复：彩屑特效
+        function createConfetti() {
+            try {
+                const confettiCount = 200;
+                const confettiColors = ['#ff0043', '#26ff00', '#00a8ff', '#ffd600', '#ff00f7', '#00fff9'];
+                
+                // 修复：确保样式只添加一次
+                if (!document.getElementById('confetti-style')) {
+                    const style = document.createElement('style');
+                    style.id = 'confetti-style';
+                    style.textContent = `
+                        @keyframes confetti {
+                            0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+                            100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+                        }
+                        .confetti {
+                            position: fixed;
+                            width: 8px;
+                            height: 16px;
+                            background-color: white;
+                            border-radius: 2px;
+                            transform: rotate(45deg);
+                            pointer-events: none;
+                            z-index: 9999;
+                        }
+                    `;
+                    document.head.appendChild(style);
+                }
+                
+                for (let i = 0; i < confettiCount; i++) {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'confetti';
+                    confetti.style.left = `${Math.random() * 100}vw`;
+                    confetti.style.top = `${-10}px`;
+                    confetti.style.backgroundColor = confettiColors[Math.floor(Math.random() * confettiColors.length)];
+                    confetti.style.animation = `confetti ${Math.random() * 3 + 2}s linear forwards`;
+                    document.body.appendChild(confetti);
+                    
+                    // 移除彩屑
+                    setTimeout(() => {
+                        try {
+                            confetti.remove();
+                        } catch (e) {}
+                    }, 5000);
+                }
+            } catch (e) {
+                console.error('创建彩屑特效失败:', e);
+            }
+        }
+
+        // 修复：设置主题
+        function setTheme(theme) {
+            try {
+                state.theme = theme;
+                
+                // 重置所有类和样式
+                elements.appBody.className = 'flex flex-col items-center justify-center transition-all duration-500 min-h-screen';
+                elements.countdownContainer.style.borderColor = '';
+                
+                // 设置主题样式
+                switch(theme) {
+                    case 'business':
+                        elements.appBody.style.background = 'linear-gradient(to bottom right, rgba(44, 62, 80, 0.8), rgba(44, 62, 80, 0.2))';
+                        elements.countdownContainer.style.borderColor = 'rgba(44, 62, 80, 0.5)';
+                        break;
+                    case 'exam':
+                        elements.appBody.style.background = 'linear-gradient(to bottom right, rgba(231, 76, 60, 0.8), rgba(231, 76, 60, 0.2))';
+                        elements.countdownContainer.style.borderColor = 'rgba(231, 76, 60, 0.5)';
+                        break;
+                    case 'festival':
+                        elements.appBody.style.background = 'linear-gradient(to bottom right, rgba(243, 156, 18, 0.8), rgba(243, 156, 18, 0.2))';
+                        elements.countdownContainer.style.borderColor = 'rgba(243, 156, 18, 0.5)';
+                        break;
+                    case 'birthday':
+                        elements.appBody.style.background = 'linear-gradient(to bottom right, rgba(155, 89, 182, 0.8), rgba(155, 89, 182, 0.2))';
+                        elements.countdownContainer.style.borderColor = 'rgba(155, 89, 182, 0.5)';
+                        break;
+                    case 'festive':
+                        elements.appBody.style.background = 'linear-gradient(to bottom right, rgba(230, 126, 34, 0.8), rgba(230, 126, 34, 0.2))';
+                        elements.countdownContainer.style.borderColor = 'rgba(230, 126, 34, 0.5)';
+                        break;
+                    default: // default
+                        elements.appBody.style.background = 'linear-gradient(to bottom right, rgba(22, 93, 255, 0.8), rgba(22, 93, 255, 0.2))';
+                        elements.countdownContainer.style.borderColor = 'rgba(22, 93, 255, 0.5)';
+                        break;
+                }
+                
+                // 保存主题到本地存储
+                localStorage.setItem('countdown_theme', theme);
+            } catch (e) {
+                console.error('设置主题失败:', e);
+            }
+        }
+
+        // 修复：处理全屏切换
+        function toggleFullscreen() {
+            try {
+                if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
+                    // 进入全屏 - 兼容不同浏览器
+                    if (document.documentElement.requestFullscreen) {
+                        document.documentElement.requestFullscreen();
+                    } else if (document.documentElement.webkitRequestFullscreen) {
+                        document.documentElement.webkitRequestFullscreen();
+                    } else if (document.documentElement.msRequestFullscreen) {
+                        document.documentElement.msRequestFullscreen();
+                    }
+                    state.isFullscreen = true;
+                    if (elements.fullscreenBtn) elements.fullscreenBtn.innerHTML = '<i class="fa fa-compress"></i>';
+                    if (elements.actionBar) elements.actionBar.style.display = 'none';
+                } else {
+                    // 退出全屏 - 兼容不同浏览器
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen();
+                    } else if (document.webkitExitFullscreen) {
+                        document.webkitExitFullscreen();
+                    } else if (document.msExitFullscreen) {
+                        document.msExitFullscreen();
+                    }
+                    state.isFullscreen = false;
+                    if (elements.fullscreenBtn) elements.fullscreenBtn.innerHTML = '<i class="fa fa-expand"></i>';
+                    if (elements.actionBar) elements.actionBar.style.display = 'flex';
+                }
+            } catch (e) {
+                console.error('切换全屏失败:', e);
+            }
+        }
+
+        // 修复：启动倒计时
+        function startCountdown() {
+            try {
+                // 隐藏当前时间，显示倒计时
+                if (elements.currentTime) elements.currentTime.style.display = 'none';
+                if (elements.countdownDisplay) elements.countdownDisplay.style.display = 'block';
+                
+                // 更新按钮状态
+                if (elements.addCountdownBtn) elements.addCountdownBtn.style.display = 'none';
+                if (elements.resetBtn) elements.resetBtn.style.display = 'inline-block';
+                if (elements.editBtn) elements.editBtn.style.display = 'inline-block';
+                
+                // 设置标题
+                if (elements.countdownTitle) elements.countdownTitle.textContent = state.title || '倒计时';
+                
+                // 设置Logo
+                if (state.logo) {
+                    if (elements.logoContainer) elements.logoContainer.style.display = 'block';
+                    if (elements.countdownLogo) elements.countdownLogo.src = state.logo;
+                } else {
+                    if (elements.logoContainer) elements.logoContainer.style.display = 'none';
+                }
+                
+                // 清除现有定时器
+                if (state.timer) clearInterval(state.timer);
+                
+                // 启动定时器
+                updateCountdownDisplay();
+                state.timer = setInterval(updateCountdownDisplay, 1000);
+            } catch (e) {
+                console.error('启动倒计时失败:', e);
+            }
+        }
+
+        // 修复：重置倒计时
+        function resetCountdown() {
+            try {
+                // 清除定时器
+                if (state.timer) clearInterval(state.timer);
+                state.timer = null;
+                
+                // 重置状态
+                state.targetTime = null;
+                state.title = '';
+                state.logo = '';
+                state.ringtone = 'default';
+                state.effect = 'fireworks';
+                state.isFinalCountdown = false;
+                
+                // 重置显示
+                if (elements.currentTime) elements.currentTime.style.display = 'block';
+                if (elements.countdownDisplay) elements.countdownDisplay.style.display = 'none';
+                if (elements.finalCountdown) elements.finalCountdown.style.display = 'none';
+                if (elements.countdownTitle) elements.countdownTitle.textContent = '';
+                if (elements.logoContainer) elements.logoContainer.style.display = 'none';
+                
+                // 重置按钮
+                if (elements.addCountdownBtn) elements.addCountdownBtn.style.display = 'inline-block';
+                if (elements.resetBtn) elements.resetBtn.style.display = 'none';
+                if (elements.editBtn) elements.editBtn.style.display = 'none';
+                
+                // 隐藏特效
+                if (elements.fireworksCanvas) elements.fireworksCanvas.style.display = 'none';
+                
+                // 清除彩屑
+                document.querySelectorAll('.confetti').forEach(el => el.remove());
+            } catch (e) {
+                console.error('重置倒计时失败:', e);
+            }
+        }
+
+        // 修复：初始化事件监听
+        function initEventListeners() {
+            try {
+                // 当前时间更新
+                setInterval(updateCurrentTime, 1000);
+                
+                // 添加倒计时按钮
+                if (elements.addCountdownBtn) {
+                    elements.addCountdownBtn.addEventListener('click', () => {
+                        if (elements.countdownModal) elements.countdownModal.style.display = 'flex';
+                        initTargetTimeInput();
+                    });
+                }
+                
+                // 取消弹窗
+                if (elements.cancelModal) {
+                    elements.cancelModal.addEventListener('click', () => {
+                        if (elements.countdownModal) elements.countdownModal.style.display = 'none';
+                    });
+                }
+                
+                // 关闭主题弹窗
+                if (elements.closeThemeModal) {
+                    elements.closeThemeModal.addEventListener('click', () => {
+                        if (elements.themeModal) elements.themeModal.style.display = 'none';
+                    });
+                }
+                
+                // 主题按钮
+                if (elements.themeBtn) {
+                    elements.themeBtn.addEventListener('click', () => {
+                        if (elements.themeModal) elements.themeModal.style.display = 'flex';
+                    });
+                }
+                
+                // 全屏按钮
+                if (elements.fullscreenBtn) {
+                    elements.fullscreenBtn.addEventListener('click', toggleFullscreen);
+                }
+                
+                // 重置按钮
+                if (elements.resetBtn) {
+                    elements.resetBtn.addEventListener('click', resetCountdown);
+                }
+                
+                // 编辑按钮
+                if (elements.editBtn) {
+                    elements.editBtn.addEventListener('click', () => {
+                        if (elements.countdownModal) elements.countdownModal.style.display = 'flex';
+                        if (elements.titleInput) elements.titleInput.value = state.title;
+                        
+                        if (state.targetTime) {
+                            const targetDate = new Date(state.targetTime);
+                            const year = targetDate.getFullYear();
+                            const month = String(targetDate.getMonth() + 1).padStart(2, '0');
+                            const day = String(targetDate.getDate()).padStart(2, '0');
+                            const hours = String(targetDate.getHours()).padStart(2, '0');
+                            const minutes = String(targetDate.getMinutes()).padStart(2, '0');
+                            const isoStr = `${year}-${month}-${day}T${hours}:${minutes}`;
+                            
+                            if (elements.targetTimeInput) elements.targetTimeInput.value = isoStr;
+                        } else {
+                            initTargetTimeInput();
+                        }
+                        
+                        if (elements.ringtoneSelect) elements.ringtoneSelect.value = state.ringtone;
+                        if (elements.effectSelect) elements.effectSelect.value = state.effect;
+                    });
+                }
+                
+                // 表单提交
+                if (elements.countdownForm) {
+                    elements.countdownForm.addEventListener('submit', (e) => {
+                        e.preventDefault();
+                        
+                        // 获取表单值
+                        if (elements.titleInput) state.title = elements.titleInput.value.trim();
+                        
+                        if (elements.targetTimeInput) {
+                            const targetValue = elements.targetTimeInput.value;
+                            if (targetValue) {
+                                state.targetTime = new Date(targetValue).getTime();
+                            }
+                        }
+                        
+                        if (elements.ringtoneSelect) state.ringtone = elements.ringtoneSelect.value;
+                        if (elements.effectSelect) state.effect = elements.effectSelect.value;
+                        
+                        // 处理Logo上传
+                        if (elements.logoUpload && elements.logoUpload.files && elements.logoUpload.files[0]) {
+                            const logoFile = elements.logoUpload.files[0];
+                            const reader = new FileReader();
+                            reader.onload = (e) => {
+                                state.logo = e.target.result;
+                                startCountdown();
+                            };
+                            reader.onerror = (e) => {
+                                console.error('读取Logo失败:', e);
+                                startCountdown();
+                            };
+                            reader.readAsDataURL(logoFile);
+                        } else {
+                            startCountdown();
+                        }
+                        
+                        // 隐藏弹窗
+                        if (elements.countdownModal) elements.countdownModal.style.display = 'none';
+                    });
+                }
+                
+                // 主题选择
+                document.querySelectorAll('.theme-card').forEach(card => {
+                    card.addEventListener('click', () => {
+                        const theme = card.dataset.theme;
+                        setTheme(theme);
+                        if (elements.themeModal) elements.themeModal.style.display = 'none';
+                    });
+                });
+                
+                // 全屏状态变化
+                document.addEventListener('fullscreenchange', handleFullscreenChange);
+                document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+                document.addEventListener('msfullscreenchange', handleFullscreenChange);
+                
+                // 点击模态框背景关闭
+                if (elements.countdownModal) {
+                    elements.countdownModal.addEventListener('click', (e) => {
+                        if (e.target === elements.countdownModal) {
+                            elements.countdownModal.style.display = 'none';
+                        }
+                    });
+                }
+                
+                if (elements.themeModal) {
+                    elements.themeModal.addEventListener('click', (e) => {
+                        if (e.target === elements.themeModal) {
+                            elements.themeModal.style.display = 'none';
+                        }
+                    });
+                }
+                
+                // 窗口大小变化时重新调整Canvas
+                window.addEventListener('resize', () => {
+                    if (elements.fireworksCanvas && elements.fireworksCanvas.style.display !== 'none') {
+                        elements.fireworksCanvas.width = window.innerWidth;
+                        elements.fireworksCanvas.height = window.innerHeight;
+                    }
+                });
+            } catch (e) {
+                console.error('初始化事件监听失败:', e);
+            }
+        }
+
+        // 修复：全屏状态变化处理
+        function handleFullscreenChange() {
+            try {
+                const isFull = !!document.fullscreenElement || !!document.webkitFullscreenElement || !!document.msFullscreenElement;
+                state.isFullscreen = isFull;
+                
+                if (elements.fullscreenBtn) {
+                    elements.fullscreenBtn.innerHTML = isFull ? '<i class="fa fa-compress"></i>' : '<i class="fa fa-expand"></i>';
+                }
+                
+                if (elements.actionBar) {
+                    elements.actionBar.style.display = isFull ? 'none' : 'flex';
+                }
+            } catch (e) {
+                console.error('处理全屏状态变化失败:', e);
+            }
+        }
+
+        // 修复：初始化应用
+        function initApp() {
+            try {
+                // 初始时间更新
+                updateCurrentTime();
+                
+                // 初始化目标时间输入
+                initTargetTimeInput();
+                
+                // 加载保存的主题
+                const savedTheme = localStorage.getItem('countdown_theme') || 'default';
+                setTheme(savedTheme);
+                
+                // 初始化事件监听
+                initEventListeners();
+                
+                // 确保所有隐藏元素初始状态正确
+                if (elements.countdownModal) elements.countdownModal.style.display = 'none';
+                if (elements.themeModal) elements.themeModal.style.display = 'none';
+                if (elements.countdownDisplay) elements.countdownDisplay.style.display = 'none';
+                if (elements.finalCountdown) elements.finalCountdown.style.display = 'none';
+                if (elements.resetBtn) elements.resetBtn.style.display = 'none';
+                if (elements.editBtn) elements.editBtn.style.display = 'none';
+                if (elements.logoContainer) elements.logoContainer.style.display = 'none';
+                if (elements.fireworksCanvas) elements.fireworksCanvas.style.display = 'none';
+            } catch (e) {
+                console.error('初始化应用失败:', e);
+                // 降级显示基础界面
+                updateCurrentTime();
+            }
+        }
+
+        // 启动应用 - 修复：确保DOM完全加载
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+            initApp();
+        } else {
+            document.addEventListener('DOMContentLoaded', initApp);
+        }
+        
+        // 兜底：确保页面加载完成
+        window.addEventListener('load', () => {
+            if (!state.timer) {
+                updateCurrentTime();
+            }
+        });
+    </script>
+</body>
 </html>
